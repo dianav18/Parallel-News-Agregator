@@ -101,8 +101,8 @@ Pentru analiza de testare am ales setul de date de la **Testul 5** deoarece este
 
 ### Rezultate
 
-![Grafic Speedup](img/speedup.png)
-![Grafic Speedup](img/timings.png)
+![Grafic Speedup](speedup.png)
+![Grafic Timings](timings.png)
 
 | Thread | Rularea 1 (s) | Rularea 2 (s) | Rularea 3 (s) | Average Time (s) | Speedup | Eficiența |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
