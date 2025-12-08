@@ -1,8 +1,3 @@
-Iată codul sursă Markdown, exact cum l-ai cerut (format brut):
-
-```markdown
-# Raport Tema 1 - Procesare Paralelă
-
 ## Secțiunea 1 – Feedback
 
 ### Ce mi-a plăcut:
