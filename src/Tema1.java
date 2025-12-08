@@ -28,7 +28,6 @@ public class Tema1 {
 	public static CyclicBarrier barrier;
 
 	public static int numberOfFiles;
-	public static int numberOfAuxilaryFiles;
 
 	// variables for file processing
 	public static Set<String> categories = new HashSet<>();
@@ -38,7 +37,6 @@ public class Tema1 {
 	public static ConcurrentHashMap<String, List<String>> articlesByCategory = new ConcurrentHashMap<>();
 	public static ConcurrentHashMap<String, List<String>> articlesByLanguage = new ConcurrentHashMap<>();
 
-	//what?
 	public static ConcurrentHashMap<String, AtomicInteger> keywordCounts = new ConcurrentHashMap<>();
 	public static AtomicInteger totalArticlesRead = new AtomicInteger(0);
 
@@ -48,40 +46,44 @@ public class Tema1 {
 	public static Set<String> blacklistedUuids = new HashSet<>();
 	public static Set<String> blacklistedTitles = new HashSet<>();
 
-	public static void main(String[] args) throws IOException {
-		if (args.length <3) {
-//			System.err.println("Usage: java Tema1 <numOfThreads> <articlesFile> <auxilaryFile>");
+	public static void main(final String[] args) throws IOException {
+        if (args.length <3) {
 			return;
 		}
 
-		int numOfThreads = Integer.parseInt(args[0]);
-		String articlesFile = args[1];
-		String auxilaryFile = args[2];
+		final int numOfThreads = Integer.parseInt(args[0]);
+		final String articlesFile = args[1];
+		final String auxilaryFile = args[2];
 
+        // read input files and auxiliary data
 		fileReader(articlesFile);
 		auxilaryFileReader(auxilaryFile);
 
+        // initialize the barrier for thread synchronization
 		barrier = new CyclicBarrier(numOfThreads);
 
-		Thread[] threads = new Thread[numOfThreads];
+        // start threads for processing the first and second phases
+		final Thread[] threads = new Thread[numOfThreads];
 
 		for (int i = 0; i < numOfThreads; i++) {
 			threads[i] = new MyThread(i, numOfThreads);
 			threads[i].start();
 		}
 
+        // wait for all threads to finish
 		for (int i = 0; i < numOfThreads; i++) {
 			try {
 				threads[i].join();
-			} catch (InterruptedException e) {
+			} catch (final InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 
-		List<FieldOfInterest> sortedArticlesByFieldPublished = new ArrayList<>(uuidArticlesSelection.values());
+        // post processing and generating output files
+		final List<FieldOfInterest> sortedArticlesByFieldPublished = new ArrayList<>(uuidArticlesSelection.values());
 
 		sortedArticlesByFieldPublished.sort((a1, a2) -> {
-			int dateComparison = a2.published.compareTo(a1.published);
+			final int dateComparison = a2.published.compareTo(a1.published);
 
 			if (dateComparison == 0) {
 				return a1.uuid.compareTo(a2.uuid);
@@ -89,47 +91,49 @@ public class Tema1 {
 			return dateComparison;
 		});
 
-		try (BufferedWriter writer = new BufferedWriter(new FileWriter("all_articles.txt"))) {
-			for (FieldOfInterest art : sortedArticlesByFieldPublished) {
+		try (final BufferedWriter writer = new BufferedWriter(new FileWriter("all_articles.txt"))) {
+			for (final FieldOfInterest art : sortedArticlesByFieldPublished) {
 				writer.write(art.uuid + " " + art.published);
 				writer.newLine();
 			}
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 
 		sortBy(articlesByCategory);
 		sortBy(articlesByLanguage);
 
-		List<Map.Entry<String, AtomicInteger>> sortedKeywords = new ArrayList<>(keywordCounts.entrySet());
+		final List<Map.Entry<String, AtomicInteger>> sortedKeywords = new ArrayList<>(keywordCounts.entrySet());
 
 		sortedKeywords.sort((e1, e2) -> {
-			int count1 = e1.getValue().get();
-			int count2 = e2.getValue().get();
+			final int count1 = e1.getValue().get();
+			final int count2 = e2.getValue().get();
 			if (count1 != count2) {
-				return Integer.compare(count2, count1); // Descrescător
+				return Integer.compare(count2, count1);
 			}
-			return e1.getKey().compareTo(e2.getKey()); // Lexicografic
+			return e1.getKey().compareTo(e2.getKey());
 		});
 
-		try (BufferedWriter writer = new BufferedWriter(new FileWriter("keywords_count.txt"))) {
-			for (Map.Entry<String, AtomicInteger> entry : sortedKeywords) {
+		try (final BufferedWriter writer = new BufferedWriter(new FileWriter("keywords_count.txt"))) {
+			for (final Map.Entry<String, AtomicInteger> entry : sortedKeywords) {
 				writer.write(entry.getKey() + " " + entry.getValue().get());
 				writer.newLine();
 			}
-		} catch (IOException e) { e.printStackTrace(); }
+		} catch (final IOException e) {
+            e.printStackTrace();
+        }
 
-		int totalRead = totalArticlesRead.get();
-		int finalCount = uuidArticlesSelection.size();
-		int duplicatesFound = totalRead - finalCount;
+		final int totalRead = totalArticlesRead.get();
+		final int finalCount = uuidArticlesSelection.size();
+		final int duplicatesFound = totalRead - finalCount;
 
-		Map<String, Integer> authorCounts = new HashMap<>();
-		for (FieldOfInterest art : uuidArticlesSelection.values()) {
+		final Map<String, Integer> authorCounts = new HashMap<>();
+		for (final FieldOfInterest art : uuidArticlesSelection.values()) {
 			authorCounts.put(art.author, authorCounts.getOrDefault(art.author, 0) + 1);
 		}
 		String bestAuthor = "";
 		int maxAuthorCount = -1;
-		for (Map.Entry<String, Integer> entry : authorCounts.entrySet()) {
+		for (final Map.Entry<String, Integer> entry : authorCounts.entrySet()) {
 			if (entry.getValue() > maxAuthorCount) {
 				maxAuthorCount = entry.getValue();
 				bestAuthor = entry.getKey();
@@ -140,8 +144,8 @@ public class Tema1 {
 
 		String topLanguage = "";
 		int maxLangCount = -1;
-		for (Map.Entry<String, List<String>> entry : articlesByLanguage.entrySet()) {
-			int count = entry.getValue().size();
+		for (final Map.Entry<String, List<String>> entry : articlesByLanguage.entrySet()) {
+			final int count = entry.getValue().size();
 			if (count > maxLangCount) {
 				maxLangCount = count;
 				topLanguage = entry.getKey();
@@ -152,8 +156,8 @@ public class Tema1 {
 
 		String topCategory = "";
 		int maxCatCount = -1;
-		for (Map.Entry<String, List<String>> entry : articlesByCategory.entrySet()) {
-			int count = entry.getValue().size();
+		for (final Map.Entry<String, List<String>> entry : articlesByCategory.entrySet()) {
+			final int count = entry.getValue().size();
 			if (count > maxCatCount) {
 				maxCatCount = count;
 				topCategory = entry.getKey();
@@ -161,9 +165,9 @@ public class Tema1 {
 				if (topCategory.compareTo(entry.getKey()) > 0) topCategory = entry.getKey();
 			}
 		}
-		String topCategoryNorm = topCategory.replace(",", "").replace(" ", "_");
+		final String topCategoryNorm = topCategory.replace(",", "").replace(" ", "_");
 
-		FieldOfInterest mostRecent = sortedArticlesByFieldPublished.isEmpty() ? null : sortedArticlesByFieldPublished.get(0);
+		final FieldOfInterest mostRecent = sortedArticlesByFieldPublished.isEmpty() ? null : sortedArticlesByFieldPublished.get(0);
 
 		String topKeyword = "";
 		int maxKeyCount = 0;
@@ -172,7 +176,7 @@ public class Tema1 {
 			maxKeyCount = sortedKeywords.get(0).getValue().get();
 		}
 
-		try (BufferedWriter writer = new BufferedWriter(new FileWriter("reports.txt"))) {
+		try (final BufferedWriter writer = new BufferedWriter(new FileWriter("reports.txt"))) {
 			writer.write("duplicates_found - ");
 			writer.write(String.valueOf(duplicatesFound)); writer.newLine();
 
@@ -197,67 +201,69 @@ public class Tema1 {
 			if (!topKeyword.isEmpty()) {
 				writer.write("top_keyword_en - " + topKeyword + " " + maxKeyCount); writer.newLine();
 			}
-		} catch (IOException e) { e.printStackTrace(); }
+		} catch (final IOException e) {
+            e.printStackTrace();
+        }
 	}
 
-	private static void sortBy(ConcurrentHashMap<String, List<String>> articlesBy) {
+	private static void sortBy(final ConcurrentHashMap<String, List<String>> articlesBy) {
 		articlesBy.forEach((languageName, uuids) -> {
 			Collections.sort(uuids);
-			String fileName = languageName.replace(",", "").replace(" ", "_") + ".txt";
-			try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
-				for (String id : uuids) {
+			final String fileName = languageName.replace(",", "").replace(" ", "_") + ".txt";
+			try (final BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+				for (final String id : uuids) {
 					writer.write(id);
 					writer.newLine();
 				}
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				e.printStackTrace();
 			}
 		});
 	}
 
-	private static void auxilaryFileReader(String auxilaryFile) throws IOException {
-		File file = new File(auxilaryFile);
-		String parentDir = file.getParent();
+	private static void auxilaryFileReader(final String auxilaryFile) throws IOException {
+		final File file = new File(auxilaryFile);
+		final String parentDirectory = file.getParent();
 
-		BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
+		final BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
 		bufferedReader.readLine();
 
-		String languageRel = bufferedReader.readLine().trim();
-		String categoriesRel = bufferedReader.readLine().trim();
-		String wordsRel = bufferedReader.readLine().trim();
+		final String languageRel = bufferedReader.readLine().trim();
+		final String categoriesRel = bufferedReader.readLine().trim();
+		final String wordsRel = bufferedReader.readLine().trim();
 		bufferedReader.close();
 
-		loadSet(new File(parentDir, languageRel).getCanonicalPath(), languages);
-		loadSet(new File(parentDir, categoriesRel).getCanonicalPath(), categories);
-		loadSet(new File(parentDir, wordsRel).getCanonicalPath(), excludedWords);
+		loadSet(new File(parentDirectory, languageRel).getCanonicalPath(), languages);
+		loadSet(new File(parentDirectory, categoriesRel).getCanonicalPath(), categories);
+		loadSet(new File(parentDirectory, wordsRel).getCanonicalPath(), excludedWords);
 	}
 
-	private static void fileReader(String articlesFile) throws IOException {
-		File file = new File(articlesFile);
-		String parentDir = file.getParent();
+	private static void fileReader(final String articlesFile) throws IOException {
+		final File file = new File(articlesFile);
+		final String parentDirectory = file.getParent();
 
-		BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
+		final BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
 		String line = bufferedReader.readLine();
 		numberOfFiles = Integer.parseInt(line);
 
 		while ((line = bufferedReader.readLine()) != null) {
 			if (!line.trim().isEmpty()) {
-				String relativePath = line.trim();
-				File fullPath = new File(parentDir, relativePath);
+				final String relativePath = line.trim();
+				final File fullPath = new File(parentDirectory, relativePath);
 				inputFiles.add(fullPath.getCanonicalPath());
 			}
 		}
 		bufferedReader.close();
 	}
 
-	private static void loadSet(String path, Set<String> targetSet) throws IOException {
-		BufferedReader br = new BufferedReader(new FileReader(path));
-		String line = br.readLine();
-		while ((line = br.readLine()) != null) {
+	private static void loadSet(final String path, final Set<String> targetSet) throws IOException {
+		final BufferedReader bufferedReader = new BufferedReader(new FileReader(path));
+		String line = bufferedReader.readLine();
+		while ((line = bufferedReader.readLine()) != null) {
 			if (!line.trim().isEmpty()) {
 				targetSet.add(line.trim());
 			}
 		}
-		br.close();
+        bufferedReader.close();
 	}
 }

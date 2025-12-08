@@ -16,53 +16,61 @@ public class MyThread extends Thread {
 	private int numOfThreads;
 	private ObjectMapper objectMapper;
 
-	public MyThread(int id, int numOfThreads) {
+	public MyThread(final int id, final int numOfThreads) {
 		this.id = id;
 		this.numOfThreads = numOfThreads;
 		this.objectMapper = new ObjectMapper();
 	}
 
 	public void run() {
-		int numberOfFiles = Tema1.numberOfFiles;
+		final int numberOfFiles = Tema1.numberOfFiles;
 
-		int start = id * numberOfFiles / numOfThreads;
-		int end = (id + 1) * numberOfFiles / numOfThreads;
+        // First phase: Process files and select unique articles
+		final int start = id * numberOfFiles / numOfThreads;
+		final int end = (id + 1) * numberOfFiles / numOfThreads;
 
+        // Each thread processes its assigned files
 		for (int i = start; i < end; i++) {
-			String fileName = Tema1.inputFiles.get(i);
+			final String fileName = Tema1.inputFiles.get(i);
 			processFile(fileName);
 		}
 
 		try {
+            // first barrier: wait for all threads to finish file processing and deduplication from fhase one
 			Tema1.barrier.await();
 
+            // Only one thread creates the list of unique articles for the second phase
 			if (id == 0) {
 				Tema1.uniqueArticlesList = new ArrayList<>(Tema1.uuidArticlesSelection.values());
 			}
 
+            // second barrier: wait for the unique articles list to be ready
 			Tema1.barrier.await();
 
-			int totalUnique = Tema1.uniqueArticlesList.size();
-			int start2 = id * totalUnique / numOfThreads;
-			int end2 = (id + 1) * totalUnique / numOfThreads;
+            // Second phase: Process unique articles for categories, languages, and keywords
+			final int totalUnique = Tema1.uniqueArticlesList.size();
+			final int start2 = id * totalUnique / numOfThreads;
+			final int end2 = (id + 1) * totalUnique / numOfThreads;
 
 			for (int i = start2; i < end2; i++) {
 				processUniqueArticle(Tema1.uniqueArticlesList.get(i));
 			}
 
+            // third barrier: wait for all threads to finish processing the second phase
 			Tema1.barrier.await();
-		} catch (InterruptedException | BrokenBarrierException e) {
+		} catch (final InterruptedException | BrokenBarrierException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	private void processFile(String fileName) {
+    // Method to process a single file and perform deduplication for the first phase
+	private void processFile(final String fileName) {
 		try {
-			File file = new File(fileName);
+			final File file = new File(fileName);
 
-			List<FieldOfInterest> articles = objectMapper.readValue(file, new TypeReference<List<FieldOfInterest>>(){});
+			final List<FieldOfInterest> articles = objectMapper.readValue(file, new TypeReference<List<FieldOfInterest>>(){});
 
-			for (FieldOfInterest article : articles) {
+			for (final FieldOfInterest article : articles) {
 				if (article.uuid == null || article.title == null) {
 					continue;
 				}
@@ -75,8 +83,8 @@ public class MyThread extends Thread {
 						continue;
 					}
 
-					FieldOfInterest existingByUuid = Tema1.uuidArticlesSelection.get(article.uuid);
-					FieldOfInterest existingByTitle = Tema1.titleArticlesSelection.get(article.title);
+					final FieldOfInterest existingByUuid = Tema1.uuidArticlesSelection.get(article.uuid);
+					final FieldOfInterest existingByTitle = Tema1.titleArticlesSelection.get(article.title);
 
 					if (existingByUuid != null || existingByTitle != null) {
 						Tema1.blacklistedUuids.add(article.uuid);
@@ -89,7 +97,6 @@ public class MyThread extends Thread {
 							Tema1.blacklistedUuids.add(existingByUuid.uuid);
 							Tema1.blacklistedTitles.add(existingByUuid.title);
 						}
-
 						if (existingByTitle != null) {
 							Tema1.uuidArticlesSelection.remove(existingByTitle.uuid);
 							Tema1.titleArticlesSelection.remove(existingByTitle.title);
@@ -97,8 +104,6 @@ public class MyThread extends Thread {
 							Tema1.blacklistedUuids.add(existingByTitle.uuid);
 							Tema1.blacklistedTitles.add(existingByTitle.title);
 						}
-
-
 					} else {
 						Tema1.uuidArticlesSelection.put(article.uuid, article);
 						Tema1.titleArticlesSelection.put(article.title, article);
@@ -106,16 +111,16 @@ public class MyThread extends Thread {
 				}
 			}
 
-		} catch (IOException e) {
-			System.err.println("Eroare citire JSON (" + fileName + "): " + e.getMessage());
+		} catch (final IOException e) {
 		}
 	}
 
-	private void processUniqueArticle(FieldOfInterest article) {
+    // Method to process a unique article on categories for the second phase
+	private void processUniqueArticle(final FieldOfInterest article) {
 		if (article.categories != null) {
-			Set<String> distinctCategories = new HashSet<>(article.categories);
+			final Set<String> distinctCategories = new HashSet<>(article.categories);
 
-			for (String category : distinctCategories) {
+			for (final String category : distinctCategories) {
 				if (Tema1.categories.contains(category)) {
 					Tema1.articlesByCategory
 							.computeIfAbsent(category, k -> Collections.synchronizedList(new ArrayList<>()))
@@ -135,21 +140,21 @@ public class MyThread extends Thread {
 		}
 	}
 
-	private void processKeywords(String text) {
-		String content = text.toLowerCase();
-		String[] words = content.split("[\\s]+");
+	private void processKeywords(final String text) {
+		final String content = text.toLowerCase();
+		final String[] words = content.split("[\\s]+");
 
-		Set<String> uniqueWordsInArticle = new HashSet<>();
+		final Set<String> uniqueWordsInArticle = new HashSet<>();
 
-		for (String rawWord : words) {
-			String cleanWord = rawWord.replaceAll("[^a-z]", "");
+		for (final String rawWord : words) {
+			final String cleanWord = rawWord.replaceAll("[^a-z]", "");
 
 			if (!cleanWord.isEmpty() && !Tema1.excludedWords.contains(cleanWord)) {
 				uniqueWordsInArticle.add(cleanWord);
 			}
 		}
 
-		for (String word : uniqueWordsInArticle) {
+		for (final String word : uniqueWordsInArticle) {
 			Tema1.keywordCounts
 					.computeIfAbsent(word, k -> new AtomicInteger(0))
 					.incrementAndGet();
