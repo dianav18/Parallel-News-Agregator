@@ -1,19 +1,4 @@
-## Secțiunea 1 – Feedback
-
-### Ce mi-a plăcut:
-- **Ideea temei și aplicabilitatea:** Faptul că a fost în Java și s-a pliat pe scenarii din viața reală, reușind să îmi satisfacă curiozități.
-- **Claritatea:** A fost explicată extrem, extrem de bine.
-
-### Durată rezolvare temă:
-- **12 ore** (conform Wakatime).
-
-### Ce aș fi îmbunătățit:
-- **Schelet de cod:** Un schelet ar fi ajutat să nu pierdem timp pe o structură care să mulțumească doar checker-ul.
-- **Output checker:** Aș fi menționat în enunț că se poate șterge linia din checker care redirecționa outputul către `/dev/null`, pentru a facilita debugging-ul.
-
----
-
-## Secțiunea 2 – Strategia de paralelizare
+## Secțiunea 1 – Strategia de paralelizare
 
 ### Etape de procesare
 
@@ -87,7 +72,7 @@
 
 ---
 
-## Secțiunea 3 - Analiza de performanță și scalabilitate
+## Secțiunea 2 - Analiza de performanță și scalabilitate
 
 Pentru analiza de testare am ales setul de date de la **Testul 5** deoarece este voluminos (**13.789 articole**), fiind ușor de observat beneficiile paralelizării.
 
